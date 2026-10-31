@@ -44,8 +44,9 @@ SQL の AST、文字列整形、配列操作、パラメーター保持には Le
 ## Lean での CI
 
 `lean-toolchain` で Lean のバージョンを固定し、CI では `leanprover/lean-action`
-に `lake build` を実行させる。Lean の `#guard` はコンパイル時に評価結果を
-検査するため、独立したテスト実行器なしで SQL とパラメーターの回帰を検出できる。
+に `lake test` を実行させる。`MapleSQLTests` を Lake の test driver として登録し、
+Lean の `#guard` がコンパイル時に評価結果を検査するため、独立したテスト実行器
+なしで SQL とパラメーターの回帰を検出できる。
 Action は `.lake` をキャッシュし、Mathlib 依存がないため Mathlib キャッシュ取得は
 明示的に無効にする。将来 Mathlib 等を追加した場合は、その依存に対応した
 キャッシュを有効化してから、キャッシュヒットを前提としたビルド時間を測定する。

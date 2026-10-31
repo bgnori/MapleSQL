@@ -25,10 +25,10 @@ not required. The initial image and Lean downloads require internet access.
 
 The container installs Elan and the Lean VS Code extension. On creation,
 `.devcontainer/setup.sh` uses the version in `lean-toolchain`, runs `lake update`
-to generate `lake-manifest.json`, then builds the library and compile-time tests.
-Toolchain installation and dependency resolution have a 10-minute limit; the
-build has a 5-minute limit. A download or build failure stops initialization and
-appears in the Dev Containers creation log. After resolving the cause, rerun
+to generate `lake-manifest.json`, then runs `lake test`. Toolchain installation
+and dependency resolution have a 10-minute limit; testing has a 5-minute limit.
+A download or test failure stops initialization and appears in the Dev
+Containers creation log. After resolving the cause, rerun
 `bash .devcontainer/setup.sh` in the container terminal.
 
 The repository is bind-mounted from your computer: edits and the generated
@@ -41,11 +41,12 @@ can also resolve the project.
 In the container terminal, run:
 
 ```sh
-lake build MapleSQL MapleSQLTests
+lake test
 ```
 
-The test module uses Lean's `#guard` command, so the build checks the expected
-SQL and parameter values without an additional test dependency.
+`lake test` builds the `MapleSQLTests` test driver. Its Lean `#guard` checks
+verify the expected SQL and parameter values without an additional test
+dependency. To build the library independently, run `lake build MapleSQL`.
 
 Without a container, install Elan and the Lean version specified in
-`lean-toolchain`, run `lake update` once, then use the same build command.
+`lean-toolchain`, run `lake update` once, then use `lake test`.

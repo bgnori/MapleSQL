@@ -21,6 +21,32 @@ def readExample : Statement :=
   "SELECT \"id\", \"name\" FROM \"users\" WHERE \"active\" = ?"
   #[.integer 1]
 
+#guard rendersAs (.select #[.all] "users" none)
+  "SELECT * FROM \"users\""
+  #[]
+
+#guard rendersAs
+  (.select #[.all] "users" (.some (.notEqual (.column "status") (.parameter (.text "inactive")))))
+  "SELECT * FROM \"users\" WHERE \"status\" <> ?"
+  #[.text "inactive"]
+
+#guard rendersAs
+  (.select #[.all] "users" (.some (.greaterThan (.column "age") (.parameter (.integer 18)))))
+  "SELECT * FROM \"users\" WHERE \"age\" > ?"
+  #[.integer 18]
+
+#guard rendersAs
+  (.select #[.all] "users"
+    (.some (.and #[
+      .equal (.column "active") (.parameter (.integer 1)),
+      .and #[
+        .greaterThan (.column "age") (.parameter (.integer 18)),
+        .notEqual (.column "role") (.parameter (.text "guest"))
+      ]
+    ])))
+  "SELECT * FROM \"users\" WHERE (\"active\" = ? AND (\"age\" > ? AND \"role\" <> ?))"
+  #[.integer 1, .integer 18, .text "guest"]
+
 def insertExample : Statement :=
   .insert "properties" #["name", "surname", "age"]
     #[#[.text "Jon", .text "Smith", .integer 34],
@@ -49,6 +75,10 @@ def deleteExample : Statement :=
 
 #guard failsWith (.select #[] "users" none)
   "SELECT requires at least one column"
+#guard failsWith (.insert "users" #[] #[#[]])
+  "INSERT requires at least one column"
+#guard failsWith (.insert "users" #["id"] #[])
+  "INSERT requires at least one row"
 #guard rendersAs
   (.select #[.all] "foo"
     (.some (.and #[
@@ -60,7 +90,13 @@ def deleteExample : Statement :=
   "AND requires at least one predicate"
 #guard failsWith (.insert "t" #["a", "b"] #[#[.integer 1]])
   "INSERT row width must match the column count"
+#guard failsWith (.update "films" #[] none)
+  "UPDATE requires at least one assignment"
 #guard rendersAs
   (.select #[.named "odd\"name"] "users" none)
   "SELECT \"odd\"\"name\" FROM \"users\""
+  #[]
+
+#guard rendersAs (.delete "odd\"table" none)
+  "DELETE FROM \"odd\"\"table\""
   #[]
