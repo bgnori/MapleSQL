@@ -3,16 +3,21 @@ import MapleSQL
 
 open MapleSQL
 
-def matches (statement : Statement) (expectedSql : String) (expectedParams : Array Value) : Bool :=
+def rendersAs (statement : Statement) (expectedSql : String) (expectedParams : Array Value) : Bool :=
   match render statement with
   | .ok formatted => formatted.sql == expectedSql && formatted.params == expectedParams
   | .error _ => false
+
+def failsWith (statement : Statement) (expectedError : String) : Bool :=
+  match render statement with
+  | .ok _ => false
+  | .error message => message == expectedError
 
 def readExample : Statement :=
   .select #[.named "id", .named "name"] "users"
     (.some (.equal (.column "active") (.parameter (.integer 1))))
 
-#guard matches readExample
+#guard rendersAs readExample
   "SELECT \"id\", \"name\" FROM \"users\" WHERE \"active\" = ?"
   #[.integer 1]
 
@@ -21,7 +26,7 @@ def insertExample : Statement :=
     #[#[.text "Jon", .text "Smith", .integer 34],
       #[.text "Jane", .text "Daniels", .integer 56]]
 
-#guard matches insertExample
+#guard rendersAs insertExample
   "INSERT INTO \"properties\" (\"name\", \"surname\", \"age\") VALUES (?, ?, ?), (?, ?, ?)"
   #[.text "Jon", .text "Smith", .integer 34, .text "Jane", .text "Daniels", .integer 56]
 
@@ -31,31 +36,31 @@ def updateExample : Statement :=
       ("watched", .add (.column "watched") (.parameter (.integer 1)))]
     (.some (.equal (.column "kind") (.parameter (.text "drama"))))
 
-#guard matches updateExample
+#guard rendersAs updateExample
   "UPDATE \"films\" SET \"kind\" = ?, \"watched\" = (\"watched\" + ?) WHERE \"kind\" = ?"
   #[.text "dramatic", .integer 1, .text "drama"]
 
 def deleteExample : Statement :=
   .delete "films" (.some (.notEqual (.column "kind") (.parameter (.text "musical"))))
 
-#guard matches deleteExample
+#guard rendersAs deleteExample
   "DELETE FROM \"films\" WHERE \"kind\" <> ?"
   #[.text "musical"]
 
-#guard render (.select #[] "users" none) ==
-  .error "SELECT requires at least one column"
-#guard matches
+#guard failsWith (.select #[] "users" none)
+  "SELECT requires at least one column"
+#guard rendersAs
   (.select #[.all] "foo"
     (.some (.and #[
       .equal (.column "a") (.parameter (.integer 1)),
       .greaterThan (.column "b") (.parameter (.integer 10))])))
   "SELECT * FROM \"foo\" WHERE (\"a\" = ? AND \"b\" > ?)"
   #[.integer 1, .integer 10]
-#guard render (.select #[.all] "foo" (.some (.and #[]))) ==
-  .error "AND requires at least one predicate"
-#guard render (.insert "t" #["a", "b"] #[#[.integer 1]]) ==
-  .error "INSERT row width must match the column count"
-#guard matches
+#guard failsWith (.select #[.all] "foo" (.some (.and #[])))
+  "AND requires at least one predicate"
+#guard failsWith (.insert "t" #["a", "b"] #[#[.integer 1]])
+  "INSERT row width must match the column count"
+#guard rendersAs
   (.select #[.named "odd\"name"] "users" none)
   "SELECT \"odd\"\"name\" FROM \"users\""
   #[]
